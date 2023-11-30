@@ -164,5 +164,5 @@ def play_auto(player_X, player_O, rule = 1):
         turn += 1
     
 
-# play_auto('random_agent', '_MSSV')
-play_step_by_step('random_agent', '_MSSV')
+play_auto('random_agent', '_MSSV', rule=1)
+#play_step_by_step('random_agent', '_MSSV')

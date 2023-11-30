@@ -233,10 +233,9 @@ def real_evaluate_square(state, index):
 def mini_max(state, depth, alpha, beta, maximizing_player):
 
     calc_eval = evaluate_game(state)
-    if depth <= 0 or abs(calc_eval) > 5000:
-        return calc_eval
-
     valid_moves = state.get_valid_moves
+    if depth <= 0 or abs(calc_eval) > 5000 or not len(valid_moves):
+        return calc_eval
     
     if maximizing_player == True:
         max_eval = float('-inf')
