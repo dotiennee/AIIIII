@@ -109,6 +109,7 @@ def select_move(cur_state, remain_time):
     for move in valid_moves:
         # Tạo một bản sao của trạng thái hiện tại để thực hiện nước đi
         new_state = State(cur_state)
+        new_state.free_move=cur_state.free_move
         new_state.act_move(move)
 
         # Chạy thuật toán minimax để đánh giá nước đi
@@ -241,6 +242,7 @@ def mini_max(state, depth, alpha, beta, maximizing_player):
         max_eval = float('-inf')
         for move in valid_moves:
             new_state=State(state)
+            new_state.free_move=state.free_move
             new_state.act_move(move) 
             evalut = mini_max(new_state, depth - 1, alpha,  beta, False)
             max_eval = max(max_eval, evalut)
@@ -252,6 +254,7 @@ def mini_max(state, depth, alpha, beta, maximizing_player):
         min_eval = float('inf')
         for move in valid_moves:
             new_state=State(state)
+            new_state.free_move=state.free_move
             new_state.act_move(move)
             evalua = mini_max(new_state, depth - 1, alpha, beta, True)
             min_eval = min(min_eval, evalua)
