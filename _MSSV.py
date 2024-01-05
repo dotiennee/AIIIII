@@ -1,264 +1,302 @@
-# # import numpy as np
-
-
-# # def select_move(cur_state, remain_time):
-# #     valid_moves = cur_state.get_valid_moves
-# #     if len(valid_moves) != 0:
-# #         return np.random.choice(valid_moves)
-# #     return None
-
-# import numpy as np
-# from state import State, State_2
-
 import numpy as np
-from state import State, State_2
-
-# def select_move(cur_state, remain_time):
-#     st=State_2(cur_state)
-#     valid_moves = st.get_valid_moves  # Đây là thuộc tính, không cần dấu ngoặc
-#     if len(valid_moves) != 0:
-#         if not valid_moves:
-#             return None
-
-#         best_move = valid_moves[0]
-#         best_score = float('-inf')  # Negative infinity
-#         alpha = float('-inf')
-#         beta = float('inf')
-
-#         for move in valid_moves:
-#             new_state = State_2(st)
-#             new_state.act_move(move)
-#             score = minimax_alpha_beta(new_state, depth=3, alpha=alpha, beta=beta, maximizing_player=False)
-
-#             if score > best_score:
-#                 best_score = score
-#                 best_move = move
-
-#             alpha = max(alpha, best_score)
-
-#         # cur_state.act_move(best_move)
-#         return best_move
+from state import UltimateTTT_Move, State
+from game_state import GameState, GameState2
 
 
-# def minimax_alpha_beta(state, depth, alpha, beta, maximizing_player):
-#     if depth == 0 or state.game_over:
-#         return evaluate_state(state)
+def check_win_condition(board):
+    row_sum = np.sum(board, 1)
+    col_sum = np.sum(board, 0)
+    diag_sum_top_left = board.trace()
+    diag_sum_top_right = board[::-1].trace()
 
-#     valid_moves = state.get_valid_moves
+    player_one_wins = any(row_sum == 3) + any(col_sum == 3)
+    player_one_wins += (diag_sum_top_left == 3) + (diag_sum_top_right == 3)
 
-#     if not valid_moves:
-#         # Không có bước đi hợp lệ, trả về giá trị đánh giá cho trạng thái hiện tại
-#         return evaluate_state(state)
+    if player_one_wins:
+        return 1
 
-#     if maximizing_player:
-#         max_eval = float('-inf')
-#         for move in valid_moves:
-#             new_state = State_2(state)
-#             new_state.act_move(move)
-#             eval = minimax_alpha_beta(new_state, depth - 1, alpha, beta, False)
-#             max_eval = max(max_eval, eval)
-#             alpha = max(alpha, max_eval)
-#             if beta <= alpha:
-#                 break
-#         return max_eval
-#     else:
-#         min_eval = float('inf')
-#         for move in valid_moves:
-#             new_state = State_2(state)
-#             new_state.act_move(move)
-#             eval = minimax_alpha_beta(new_state, depth - 1, alpha, beta, True)
-#             min_eval = min(min_eval, eval)
-#             beta = min(beta, min_eval)
-#             if beta <= alpha:
-#                 break
-#         return min_eval
-# def evaluate_state(state):
-#     result = state.game_result(state.global_cells.reshape(3, 3))
+    player_two_wins = any(row_sum == -3) + any(col_sum == -3)
+    player_two_wins += (diag_sum_top_left == -3) + (diag_sum_top_right == -3)
 
-#     if result == state.X:
-#         return 1
-#     elif result == state.O:
-#         return -1
-#     else:
-#         total_score = 0
+    if player_two_wins:
+        return -1
 
-#         # Evaluate each small local board
-#         for i in range(9):
-#             local_board = state.blocks[i]
-#             local_result = state.game_result(local_board)
-
-#             if local_result == state.X:
-#                 total_score += 1
-#             elif local_result == state.O:
-#                 total_score -= 1
-
-#         return total_score
-
-def select_move(cur_state, remain_time):
-    count=len((np.where(cur_state.global_cells == 0))[0])
-    valid_moves = cur_state.get_valid_moves
-
-    if not valid_moves:
-        return False  
-
-    best_move = None
-    best_score = float('-inf')
-    alpha = float('-inf')
-    beta = float('inf')
-
-    for move in valid_moves:
-        # Tạo một bản sao của trạng thái hiện tại để thực hiện nước đi
-        new_state = State(cur_state)
-        new_state.free_move=cur_state.free_move
-        new_state.act_move(move)
-
-        # Chạy thuật toán minimax để đánh giá nước đi
-        score = mini_max(new_state, min(1, count), alpha, beta, maximizing_player=False)
+    return 0
 
 
-        if score > best_score:
-            best_score = score
-            best_move = move
-    
-    return best_move
-
-def evaluate_game(state):
-    evale = 0
-    main_bd = np.zeros(9)
-    evaluator_mul = [1.4, 1, 1.4, 1, 1.75, 1, 1.4, 1, 1.4]
-    currentBoard = 9
-    if state.previous_move != None:
-        currentBoard = state.previous_move.x * 3 + state.previous_move.y
-    # Loop through each element in the position array
-    for eh in range(9):
-        evale += real_evaluate_square(state, eh) * 1.5 * evaluator_mul[eh]
-
-        # If the current element is the same as the current board, add its evaluation to the total
-        if eh == currentBoard:
-            evale += real_evaluate_square(state, eh) * evaluator_mul[eh]
-
-        # Check for winning condition in the current square and subtract its evaluation from the total
-        tmp_ev = state.game_result(state.blocks[eh])
-        if tmp_ev is not None:
-            evale -= tmp_ev * evaluator_mul[eh]
-
-        # Store the evaluation of the current square in the main_bd list
-        main_bd[eh]= tmp_ev
-
-    # Subtract the overall winning condition evaluation from the total
-    if state.game_result(main_bd.reshape(3,3)) != None:
-        evale -= state.game_result(main_bd.reshape(3,3)) * 5000
-
-    # Add the evaluation of the main_bd to the total
-    evale += real_evaluate_square(state, currentBoard) * 150
-
-    return evale
-
-# Placeholder functions - you need to implement these according to your requirements
-def real_evaluate_square(state, index):
-    # Implement the real evaluation logic for a single square
-    pos_2d = state.blocks[index]
+def real_evaluate_position(board, row, col, player):
     evaluation = 0
-    points = np.array([0.2, 0.17, 0.2, 0.17, 0.22, 0.17, 0.2, 0.17, 0.2])
+    points = [0.2, 0.17, 0.2, 0.17, 0.22, 0.17, 0.2, 0.17, 0.2]
 
-    for i in range(3):
-        for j in range(3):
-            evaluation -= pos_2d[i, j] * points[i * 3 + j]
+    board[row, col] = player
+    evaluation += player * points[3 * row + col]
 
-    a = 2
-    if np.any(np.sum(pos_2d, axis=0) == a):
-        evaluation -= 6
+    if board[0, 0] + board[0, 1] + board[0, 2] == 2 * player or board[1, 0] + board[1, 1] + board[1, 2] == 2 * player or \
+            board[2, 0] + \
+            board[2, 1] + board[2, 2] == 2 * player:
+        evaluation += player * 1
+    if board[0, 0] + board[1, 0] + board[2, 0] == 2 * player or board[0, 1] + board[1, 1] + board[2, 1] == 2 * player or \
+            board[0, 2] + \
+            board[1, 2] + board[2, 2] == 2 * player:
+        evaluation += player * 1
+    if board[0, 0] + board[1, 1] + board[2, 2] == 2 * player or board[0, 2] + board[1, 1] + board[2, 0] == 2 * player:
+        evaluation += player * 1
 
-    if np.any(np.sum(pos_2d, axis=1) == a):
-        evaluation -= 6
+    if board[0, 0] + board[0, 1] + board[0, 2] == 3 * player or board[1, 0] + board[1, 1] + board[1, 2] == 3 * player or \
+            board[2, 0] + \
+            board[2, 1] + board[2, 2] == 3 * player:
+        evaluation += player * 5
+    if board[0, 0] + board[1, 0] + board[2, 0] == 3 * player or board[0, 1] + board[1, 1] + board[2, 1] == 3 * player or \
+            board[0, 2] + \
+            board[1, 2] + board[2, 2] == 3 * player:
+        evaluation += player * 5
+    if board[0, 0] + board[1, 1] + board[2, 2] == 3 * player or board[0, 2] + board[1, 1] + board[2, 0] == 3 * player:
+        evaluation += player * 5
 
-    if np.trace(pos_2d) == a or np.trace(np.flipud(pos_2d)) == a:
-        evaluation -= 7
+    board[row, col] = -player
 
-    a = -1
-    if (np.sum(pos_2d[:2, :], axis=0) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(pos_2d[1:, :], axis=0) == 2 * a).any() and (pos_2d[0, 0] == -a).all() or \
-    (np.sum(pos_2d[:2, :], axis=0) == 2 * a).any() and (pos_2d[0, 1] == -a).all() or \
-    (np.sum(pos_2d[:, :2], axis=1) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(pos_2d[:, 1:], axis=1) == 2 * a).any() and (pos_2d[0, 0] == -a).all() or \
-    (np.sum(pos_2d[:, :2], axis=1) == 2 * a).any() and (pos_2d[1, 2] == -a).all() or \
-    (np.sum(pos_2d[:3, 0]) == 2 * a).any() and (pos_2d[2, 0] == -a).all() or \
-    (np.sum(pos_2d[:3, 1]) == 2 * a).any() and (pos_2d[2, 1] == -a).all() or \
-    (np.sum(pos_2d[:3, 2]) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(pos_2d[0, :3]) == 2 * a).any() and (pos_2d[0, 2] == -a).all() or \
-    (np.sum(pos_2d[1, :3]) == 2 * a).any() and (pos_2d[1, 2] == -a).all() or \
-    (np.sum(pos_2d[2, :3]) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(np.diagonal(pos_2d)) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(np.diagonal(np.flipud(pos_2d))) == 2 * a).any() and (pos_2d[2, 0] == -a).all() or \
-    (np.sum(np.diagonal(pos_2d)) == 2 * a).any() and (pos_2d[0, 2] == -a).all() or \
-    (np.sum(np.diagonal(np.flipud(pos_2d))) == 2 * a).any() and (pos_2d[0, 0] == -a).all():
-        evaluation -= 9
+    if board[0, 0] + board[0, 1] + board[0, 2] == -3 * player or board[1, 0] + board[1, 1] + board[
+        1, 2] == -3 * player or board[2, 0] + \
+            board[2, 1] + board[2, 2] == -3 * player:
+        evaluation += player * 2
+    if board[0, 0] + board[1, 0] + board[2, 0] == -3 * player or board[0, 1] + board[1, 1] + board[
+        2, 1] == -3 * player or board[0, 2] + \
+            board[1, 2] + board[2, 2] == -3 * player:
+        evaluation += player * 2
+    if board[0, 0] + board[1, 1] + board[2, 2] == -3 * player or board[0, 2] + board[1, 1] + board[2, 0] == -3 * player:
+        evaluation += player * 2
 
-    a = -2
-    if np.any(np.sum(pos_2d, axis=0) == a):
-        evaluation += 6
+    board[row, col] = player
+    evaluation += check_win_condition(board) * 15
 
-    if np.any(np.sum(pos_2d, axis=1) == a):
-        evaluation += 6
-
-    if np.trace(pos_2d) == a or np.trace(np.flipud(pos_2d)) == a:
-        evaluation += 7
-
-    a = 1
-    if (np.sum(pos_2d[:2, :]) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(pos_2d[1:, :]) == 2 * a).any() and (pos_2d[0, 0] == -a).all() or \
-    (np.sum(pos_2d[:2, :]) == 2 * a).any() and (pos_2d[0, 1] == -a).all() or \
-    (np.sum(pos_2d[:, :2]) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(pos_2d[:, 1:]) == 2 * a).any() and (pos_2d[0, 0] == -a).all() or \
-    (np.sum(pos_2d[:, :2]) == 2 * a).any() and (pos_2d[1, 2] == -a).all() or \
-    (np.sum(pos_2d[:3, 0]) == 2 * a).any() and (pos_2d[2, 0] == -a).all() or \
-    (np.sum(pos_2d[:3, 1]) == 2 * a).any() and (pos_2d[2, 1] == -a).all() or \
-    (np.sum(pos_2d[:3, 2]) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(pos_2d[0, :3]) == 2 * a).any() and (pos_2d[0, 2] == -a).all() or \
-    (np.sum(pos_2d[1, :3]) == 2 * a).any() and (pos_2d[1, 2] == -a).all() or \
-    (np.sum(pos_2d[2, :3]) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(np.diagonal(pos_2d)) == 2 * a).any() and (pos_2d[2, 2] == -a).all() or \
-    (np.sum(np.diagonal(np.flipud(pos_2d))) == 2 * a).any() and (pos_2d[2, 0] == -a).all() or \
-    (np.sum(np.diagonal(pos_2d)) == 2 * a).any() and (pos_2d[0, 2] == -a).all() or \
-    (np.sum(np.diagonal(np.flipud(pos_2d))) == 2 * a).any() and (pos_2d[0, 0] == -a).all():
-        evaluation += 9
-
-    result = state.game_result(state.blocks[index])
-    if result is not None:
-        evaluation -= result * 12
-
-
+    board[row, col] = 0
     return evaluation
 
 
-def mini_max(state, depth, alpha, beta, maximizing_player):
+def real_evaluate_board(board):
+    evaluation = 0
+    points = [0.2, 0.17, 0.2, 0.17, 0.22, 0.17, 0.2, 0.17, 0.2]
 
-    calc_eval = evaluate_game(state)
+    for cell in range(9):
+        evaluation += board[cell // 3, cell % 3] * points[cell]
+
+    if board[0, 0] + board[0, 1] + board[0, 2] == 2 or board[1, 0] + board[1, 1] + board[1, 2] == 2 or board[2, 0] + \
+            board[2, 1] + board[2, 2] == 2:
+        evaluation += 6
+    if board[0, 0] + board[1, 0] + board[2, 0] == 2 or board[0, 1] + board[1, 1] + board[2, 1] == 2 or board[0, 2] + \
+            board[1, 2] + board[2, 2] == 2:
+        evaluation += 6
+    if board[0, 0] + board[1, 1] + board[2, 2] == 2 or board[0, 2] + board[1, 1] + board[2, 0] == 2:
+        evaluation += 7
+
+    if (board[0, 0] + board[0, 1] == -2 and board[0, 2] == 1) or (
+            board[0, 1] + board[0, 2] == -2 and board[0, 0] == 1) or (
+            board[0, 0] + board[0, 2] == -2 and board[0, 1] == 1):
+        evaluation += 9
+
+    if (board[1, 0] + board[1, 1] == -2 and board[1, 2] == 1) or (
+            board[1, 1] + board[1, 2] == -2 and board[1, 0] == 1) or (
+            board[1, 0] + board[1, 2] == -2 and board[1, 1] == 1):
+        evaluation += 9
+
+    if (board[2, 0] + board[2, 1] == -2 and board[2, 2] == 1) or (
+            board[2, 1] + board[2, 2] == -2 and board[2, 0] == 1) or (
+            board[2, 0] + board[2, 2] == -2 and board[2, 1] == 1):
+        evaluation += 9
+
+    if (board[0, 0] + board[1, 0] == -2 and board[2, 0] == 1) or (
+            board[1, 0] + board[2, 0] == -2 and board[0, 0] == 1) or (
+            board[0, 0] + board[2, 0] == -2 and board[1, 0] == 1):
+        evaluation += 9
+
+    if (board[0, 1] + board[1, 1] == -2 and board[2, 1] == 1) or (
+            board[1, 1] + board[2, 1] == -2 and board[0, 1] == 1) or (
+            board[0, 1] + board[2, 1] == -2 and board[1, 1] == 1):
+        evaluation += 9
+
+    if (board[0, 2] + board[1, 2] == -2 and board[2, 2] == 1) or (
+            board[1, 2] + board[2, 2] == -2 and board[0, 2] == 1) or (
+            board[0, 2] + board[2, 2] == -2 and board[1, 2] == 1):
+        evaluation += 9
+
+    if (board[0, 0] + board[1, 1] == -2 and board[2, 2] == 1) or (
+            board[1, 1] + board[2, 2] == -2 and board[0, 0] == 1) or (
+            board[0, 0] + board[2, 2] == -2 and board[1, 1] == 1):
+        evaluation += 9
+
+    if (board[0, 2] + board[1, 1] == -2 and board[2, 0] == 1) or (
+            board[1, 1] + board[2, 0] == -2 and board[0, 2] == 1) or (
+            board[0, 2] + board[2, 0] == -2 and board[1, 1] == 1):
+        evaluation += 9
+
+    if board[0, 0] + board[0, 1] + board[0, 2] == -2 or board[1, 0] + board[1, 1] + board[1, 2] == -2 or board[2, 0] + \
+            board[2, 1] + board[2, 2] == -2:
+        evaluation -= 6
+    if board[0, 0] + board[1, 0] + board[2, 0] == -2 or board[0, 1] + board[1, 1] + board[2, 1] == -2 or board[0, 2] + \
+            board[1, 2] + board[2, 2] == -2:
+        evaluation -= 6
+    if board[0, 0] + board[1, 1] + board[2, 2] == -2 or board[0, 2] + board[1, 1] + board[2, 0] == -2:
+        evaluation -= 7
+
+    if (board[0, 0] + board[0, 1] == 2 and board[0, 2] == -1) or (
+            board[0, 1] + board[0, 2] == 2 and board[0, 0] == -1) or (
+            board[0, 0] + board[0, 2] == 2 and board[0, 1] == -1):
+        evaluation -= 9
+
+    if (board[1, 0] + board[1, 1] == 2 and board[1, 2] == -1) or (
+            board[1, 1] + board[1, 2] == 2 and board[1, 0] == -1) or (
+            board[1, 0] + board[1, 2] == 2 and board[1, 1] == -1):
+        evaluation -= 9
+
+    if (board[2, 0] + board[2, 1] == 2 and board[2, 2] == -1) or (
+            board[2, 1] + board[2, 2] == 2 and board[2, 0] == -1) or (
+            board[2, 0] + board[2, 2] == 2 and board[2, 1] == -1):
+        evaluation -= 9
+
+    if (board[0, 0] + board[1, 0] == 2 and board[2, 0] == -1) or (
+            board[1, 0] + board[2, 0] == 2 and board[0, 0] == -1) or (
+            board[0, 0] + board[2, 0] == 2 and board[1, 0] == -1):
+        evaluation -= 9
+
+    if (board[0, 1] + board[1, 1] == 2 and board[2, 1] == -1) or (
+            board[1, 1] + board[2, 1] == 2 and board[0, 1] == -1) or (
+            board[0, 1] + board[2, 1] == 2 and board[1, 1] == -1):
+        evaluation -= 9
+
+    if (board[0, 2] + board[1, 2] == 2 and board[2, 2] == -1) or (
+            board[1, 2] + board[2, 2] == 2 and board[0, 2] == -1) or (
+            board[0, 2] + board[2, 2] == 2 and board[1, 2] == -1):
+        evaluation -= 9
+
+    if (board[0, 0] + board[1, 1] == 2 and board[2, 2] == -1) or (
+            board[1, 1] + board[2, 2] == 2 and board[0, 0] == -1) or (
+            board[0, 0] + board[2, 2] == 2 and board[1, 1] == -1):
+        evaluation -= 9
+
+    if (board[0, 2] + board[1, 1] == 2 and board[2, 0] == -1) or (
+            board[1, 1] + board[2, 0] == 2 and board[0, 2] == -1) or (
+            board[0, 2] + board[2, 0] == 2 and board[1, 1] == -1):
+        evaluation -= 9
+
+    evaluation += check_win_condition(board) * 12
+    return evaluation
+
+
+def evaluation_function(state: GameState):
+    eval_mul = [1.4, 1, 1.4, 1, 1.75, 1, 1.4, 1, 1.4]
+
+    evaluation = 0
+    for i in range(9):
+        evaluation += 1.5 * real_evaluate_board(state.blocks[i]) * eval_mul[i]
+        evaluation += state.global_cells[i] * eval_mul[i]
+
+    result = check_win_condition(state.global_cells.reshape(3, 3))
+    evaluation += result * 5000
+    evaluation += real_evaluate_board(state.global_cells.reshape(3, 3)) * 150
+    return evaluation
+
+
+def recurse(state: GameState, depth, alpha, beta):
+    if state.game_over or depth == 0:
+        return evaluation_function(state)
+
     valid_moves = state.get_valid_moves
-    if depth <= 0 or abs(calc_eval) > 5000 or not len(valid_moves):
-        return calc_eval
-    
-    if maximizing_player == True:
-        max_eval = float('-inf')
+    if state.player_to_move == state.x:
+        max_utility = -float('inf')
         for move in valid_moves:
-            new_state=State(state)
-            new_state.free_move=state.free_move
-            new_state.act_move(move) 
-            evalut = mini_max(new_state, depth - 1, alpha,  beta, False)
-            max_eval = max(max_eval, evalut)
-            alpha = max(alpha, evalut)
-            if beta <= alpha:
+            child_state = GameState(state)
+            child_state.act_move(move)
+            utility = recurse(child_state, depth - 1, alpha, beta)
+            if utility > max_utility:
+                max_utility = utility
+            if max_utility > alpha:
+                alpha = max_utility
+            if alpha >= beta: 
                 break
-        return max_eval
+        return alpha
     else:
-        min_eval = float('inf')
+        min_utility = float('inf')
         for move in valid_moves:
-            new_state=State(state)
-            new_state.free_move=state.free_move
-            new_state.act_move(move)
-            evalua = mini_max(new_state, depth - 1, alpha, beta, True)
-            min_eval = min(min_eval, evalua)
-            beta = min(beta, evalua)
+            child_state = GameState(state)
+            child_state.act_move(move)
+            utility = recurse(child_state, depth - 1, alpha, beta)
+            if utility < min_utility:
+                min_utility = utility
+            if min_utility < beta:
+                beta = min_utility
             if beta <= alpha:
                 break
-        return min_eval
+        return beta
+
+
+numMoves = 0
+
+
+def select_move(cur_state, remain_time):
+    valid_moves = cur_state.get_valid_moves
+    if len(valid_moves) == 0:
+        return None
+
+    for move in valid_moves:
+        child_state = GameState(cur_state)
+        child_state.act_move(move)
+        if child_state.game_over is True:
+            return move
+
+    global numMoves
+
+    if numMoves == 0 and cur_state.player_to_move == cur_state.X:
+        numMoves += 1
+        return UltimateTTT_Move(4, 1, 1, cur_state.X)
+
+    scores = np.zeros(len(valid_moves))
+    for i in range(len(valid_moves)):
+        scores[i] += real_evaluate_position(cur_state.blocks[valid_moves[i].index_local_board], valid_moves[i].x,
+                                            valid_moves[i].y, valid_moves[i].value) * 45
+
+    for i in range(len(valid_moves)):
+        child_state = None
+        if type(cur_state) is State:
+            child_state = GameState(cur_state)
+        else:
+            child_state = GameState2(cur_state)
+        child_state.act_move(valid_moves[i])
+
+        utility = 0
+        alpha = -float('inf')
+        beta = float('inf')
+        if cur_state.free_move is True:
+            if numMoves < 17:
+                utility = recurse(child_state, 3, alpha, beta)
+            elif numMoves < 20:
+                utility = recurse(child_state, 4, alpha, beta)
+            elif numMoves < 25:
+                utility = recurse(child_state, 5, alpha, beta)
+            else:
+                utility = recurse(child_state, 6, alpha, beta)
+        else:
+            if numMoves < 15:
+                utility = recurse(child_state, 4, alpha, beta)
+            elif numMoves < 20:
+                utility = recurse(child_state, 5, alpha, beta)
+            else:
+                utility = recurse(child_state, 6, alpha, beta)
+
+        scores[i] += utility
+
+    best_move = None
+    if valid_moves[0].value == 1:
+        best_score = -float('inf')
+        for i in range(len(valid_moves)):
+            if scores[i] > best_score:
+                best_score = scores[i]
+                best_move = valid_moves[i]
+    else:
+        best_score = float('inf')
+        for i in range(len(valid_moves)):
+            if scores[i] < best_score:
+                best_score = scores[i]
+                best_move = valid_moves[i]
+
+    numMoves += 1
+    return best_move
